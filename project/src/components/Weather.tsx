@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Cloud, CloudDrizzle, CloudLightning, CloudRain, CloudSnow, Sun, Loader } from 'lucide-react';
 
 interface WeatherData {
@@ -22,39 +22,23 @@ const getWeatherIcon = (code: number, className = "w-5 h-5") => {
 };
 
 const getWeatherEmoji = (code: number) => {
-  // Clear sky
   if (code === 0) return "☀️";
-  
-  // Partly cloudy
   if (code === 1) return "🌤️";
   if (code === 2) return "⛅";
   if (code === 3) return "☁️";
-  
-  // Fog
   if ([45, 48].includes(code)) return "🌫️";
-  
-  // Drizzle
   if ([51, 53, 55].includes(code)) return "🌦️";
   if ([56, 57].includes(code)) return "💧";
-  
-  // Rain
   if (code === 61) return "🌧️";
   if (code === 63) return "☔";
   if (code === 65) return "🌊";
-  
-  // Freezing Rain
   if ([66, 67].includes(code)) return "🥶";
-  
-  // Snow
   if ([71, 73, 75].includes(code)) return "🌨️";
   if ([77].includes(code)) return "❄️";
   if ([85, 86].includes(code)) return "⛄";
-  
-  // Thunderstorm
   if (code === 95) return "⛈️";
   if (code === 96) return "🌩️";
   if (code === 99) return "⚡";
-  
   return "🌈";
 };
 
@@ -62,6 +46,7 @@ export default function Weather() {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [showHourly, setShowHourly] = useState(false);
   const [loading, setLoading] = useState(true);
+  const weatherRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchWeather = async () => {
@@ -95,9 +80,20 @@ export default function Weather() {
     fetchWeather();
   }, []);
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (weatherRef.current && !weatherRef.current.contains(event.target as Node)) {
+        setShowHourly(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   if (loading) {
     return (
-      <div className="absolute top-6 right-6">
+      <div>
         <Loader className="w-5 h-5 animate-spin text-gray-400" />
       </div>
     );
@@ -110,16 +106,19 @@ export default function Weather() {
     new Date(time).getHours() === currentHour
   );
   
+  // Get exactly 7 hours: 2 before current, current hour, and 4 after
+  const startIndex = Math.max(0, currentIndex - 2);
+  const endIndex = startIndex + 7;
   const relevantHours = weather.hourly.time
-    .slice(Math.max(0, currentIndex - 2), currentIndex + 6)
+    .slice(startIndex, endIndex)
     .map((time, index) => ({
       hour: new Date(time).getHours(),
-      temp: Math.round(weather.hourly.temperature_2m[currentIndex - 2 + index]),
-      code: weather.hourly.weathercode[currentIndex - 2 + index]
+      temp: Math.round(weather.hourly.temperature_2m[startIndex + index]),
+      code: weather.hourly.weathercode[startIndex + index]
     }));
 
   return (
-    <div className="absolute top-6 right-6">
+    <div ref={weatherRef}>
       <button
         className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 backdrop-blur-lg hover:bg-white/10 transition-all"
         onClick={() => setShowHourly(!showHourly)}
@@ -129,17 +128,17 @@ export default function Weather() {
       </button>
 
       {showHourly && (
-        <div className="absolute top-full right-0 mt-2 p-4 rounded-2xl bg-black/30 backdrop-blur-xl border border-white/5 w-[500px]">
-          <div className="flex justify-between">
+        <div className="absolute top-full right-0 mt-2 p-2 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 w-[280px]">
+          <div className="grid grid-cols-7 gap-0">
             {relevantHours.map(({ hour, temp, code }) => (
-              <div key={hour} className="text-center px-2">
-                <div className="text-xs text-gray-400 mb-1">
+              <div key={hour} className="text-center">
+                <div className="text-[10px] text-gray-400">
                   {hour === currentHour ? 'Now' : `${hour}:00`}
                 </div>
-                <div className="text-xl mb-1">
+                <div className="text-sm my-0.5">
                   {getWeatherEmoji(code)}
                 </div>
-                <div className="text-xs font-light">
+                <div className="text-[10px] font-light">
                   {temp}°
                 </div>
               </div>

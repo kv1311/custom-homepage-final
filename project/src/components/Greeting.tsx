@@ -52,18 +52,22 @@ export default function Greeting() {
 
   return (
     <div className="text-center mb-12">
-      <h1 className="text-4xl font-light mb-3 tracking-wide animate-fade-in">
-        {greeting.text}
+      <h1 className="text-4xl font-light mb-3 tracking-wide animate-reveal overflow-hidden">
+        <span className="inline-block animate-text-reveal">{greeting.text}</span>
       </h1>
-      <div className="text-gray-400 space-y-1">
-        <p className="text-sm tracking-wider">
+      <div className="text-gray-400 space-y-1 overflow-hidden">
+        <p className="text-sm tracking-wider animate-fade-up delay-300">
           <i>{greeting.language}</i>
         </p>
         {greeting.pronunciation && (
-          <p className="text-xs opacity-75">[{greeting.pronunciation}]</p>
+          <p className="text-xs opacity-75 animate-fade-up delay-400">
+            [{greeting.pronunciation}]
+          </p>
         )}
         {greeting.translation && greeting.language !== "English" && (
-          <p className="text-xs opacity-75">"{greeting.translation}"</p>
+          <p className="text-xs opacity-75 animate-fade-up delay-500">
+            "{greeting.translation}"
+          </p>
         )}
       </div>
     </div>

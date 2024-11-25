@@ -4,23 +4,19 @@ import { Plus, X, Globe } from 'lucide-react';
 interface Bookmark {
   id: string;
   url: string;
-  icon?: string;
 }
 
 const STORAGE_KEY = 'homepage_bookmarks';
 
 const defaultBookmarks: Bookmark[] = [
-  {
-    id: '1',
-    url: 'https://github.com',
-    icon: 'https://github.com/favicon.ico'
-  },
-  {
-    id: '2',
-    url: 'https://twitter.com',
-    icon: 'https://twitter.com/favicon.ico'
-  }
+  { id: '1', url: 'https://github.com' },
+  { id: '2', url: 'https://twitter.com' }
 ];
+
+const getFaviconUrl = (url: string): string => {
+  const hostname = new URL(url).hostname;
+  return `https://www.google.com/s2/favicons?domain=${hostname}&sz=128`;
+};
 
 export default function Bookmarks() {
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
@@ -45,11 +41,9 @@ export default function Bookmarks() {
   const addBookmark = () => {
     if (newBookmark.url) {
       const url = newBookmark.url.startsWith('http') ? newBookmark.url : `https://${newBookmark.url}`;
-      const hostname = new URL(url).hostname;
       const newBookmarks = [...bookmarks, {
         id: Date.now().toString(),
-        url,
-        icon: `https://${hostname}/favicon.ico`
+        url
       }];
       
       saveBookmarks(newBookmarks);
@@ -70,36 +64,37 @@ export default function Bookmarks() {
   };
 
   return (
-    <div className="w-full max-w-3xl">
-      <div className="grid grid-cols-8 gap-4 justify-items-center">
+    <div className="w-full max-w-2xl">
+      <div className="grid grid-cols-10 gap-2 justify-items-center">
         {bookmarks.map(bookmark => (
           <div key={bookmark.id} className="bookmark-item group relative">
             <a
               href={bookmark.url}
-              className="flex items-center justify-center w-12 h-12 rounded-full hover:bg-white/5 transition-all"
+              className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-white/5 transition-all"
               target="_blank"
               rel="noopener noreferrer"
             >
-              {bookmark.icon ? (
-                <img 
-                  src={bookmark.icon} 
-                  alt=""
-                  className="w-8 h-8 rounded-full"
-                  onError={(e) => {
-                    e.currentTarget.onerror = null;
-                    e.currentTarget.src = '';
-                    e.currentTarget.className = 'hidden';
-                    e.currentTarget.parentElement?.appendChild(
-                      Object.assign(document.createElement('div'), {
-                        className: 'w-8 h-8 flex items-center justify-center',
-                        innerHTML: '<svg class="w-6 h-6 text-gray-300"><use href="#globe"/></svg>'
-                      })
-                    );
-                  }}
-                />
-              ) : (
-                <Globe className="w-8 h-8 text-gray-300" />
-              )}
+              <img 
+                src={getFaviconUrl(bookmark.url)}
+                alt=""
+                className="w-6 h-6"
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = '';
+                  e.currentTarget.className = 'hidden';
+                  e.currentTarget.parentElement?.appendChild(
+                    Object.assign(document.createElement('div'), {
+                      className: 'w-6 h-6 flex items-center justify-center',
+                      children: [
+                        Object.assign(document.createElement('div'), {
+                          className: 'text-gray-300',
+                          children: [document.createElement('Globe')]
+                        })
+                      ]
+                    })
+                  );
+                }}
+              />
             </a>
             <button
               onClick={() => removeBookmark(bookmark.id)}
@@ -112,9 +107,9 @@ export default function Bookmarks() {
         
         <button
           onClick={() => setIsAdding(true)}
-          className="flex items-center justify-center w-12 h-12 rounded-full hover:bg-white/5 transition-all"
+          className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-white/5 transition-all"
         >
-          <Plus className="w-6 h-6 text-gray-400" />
+          <Plus className="w-5 h-5 text-gray-400" />
         </button>
       </div>
 
