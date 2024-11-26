@@ -34,17 +34,11 @@ class BrowserStorage {
         await browser.storage.sync.set({ [key]: value });
       } else {
         localStorage.setItem(key, value);
-        // Also update URL for non-extension environments
-        const urlParams = new URLSearchParams(window.location.search);
-        urlParams.set(key, value);
-        window.history.replaceState({}, '', `${window.location.pathname}?${urlParams}`);
       }
     } catch (error) {
       console.error('Storage error:', error);
-      // Fallback to URL params
-      const urlParams = new URLSearchParams(window.location.search);
-      urlParams.set(key, value);
-      window.history.replaceState({}, '', `${window.location.pathname}?${urlParams}`);
+      // Fallback to localStorage
+      localStorage.setItem(key, value);
     }
   }
 
@@ -57,19 +51,11 @@ class BrowserStorage {
         const result = await browser.storage.sync.get(key);
         return result[key] || null;
       } else {
-        // Try localStorage first
-        const stored = localStorage.getItem(key);
-        if (stored) return stored;
-        
-        // Fallback to URL params
-        const urlParams = new URLSearchParams(window.location.search);
-        return urlParams.get(key);
+        return localStorage.getItem(key);
       }
     } catch (error) {
       console.error('Storage error:', error);
-      // Fallback to URL params
-      const urlParams = new URLSearchParams(window.location.search);
-      return urlParams.get(key);
+      return localStorage.getItem(key);
     }
   }
 }
