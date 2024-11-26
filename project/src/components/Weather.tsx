@@ -57,7 +57,7 @@ export default function Weather() {
 
         const { latitude, longitude } = pos.coords;
         const response = await fetch(
-          `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weathercode&hourly=temperature_2m,weathercode&timezone=auto`
+          `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weathercode&hourly=temperature_2m,weathercode&forecast_days=2&timezone=auto`
         );
         const data = await response.json();
         
@@ -65,9 +65,9 @@ export default function Weather() {
           temperature: data.current.temperature_2m,
           weatherCode: data.current.weathercode,
           hourly: {
-            time: data.hourly.time.slice(0, 24),
-            temperature_2m: data.hourly.temperature_2m.slice(0, 24),
-            weathercode: data.hourly.weathercode.slice(0, 24),
+            time: data.hourly.time.slice(0, 48), // Get 48 hours (2 days) of data
+            temperature_2m: data.hourly.temperature_2m.slice(0, 48),
+            weathercode: data.hourly.weathercode.slice(0, 48),
           },
         });
       } catch (error) {
@@ -78,6 +78,8 @@ export default function Weather() {
     };
 
     fetchWeather();
+    const interval = setInterval(fetchWeather, 900000); // Refresh every 15 minutes
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -103,7 +105,8 @@ export default function Weather() {
 
   const currentHour = new Date().getHours();
   const currentIndex = weather.hourly.time.findIndex(time => 
-    new Date(time).getHours() === currentHour
+    new Date(time).getHours() === currentHour && 
+    new Date(time).getDate() === new Date().getDate()
   );
   
   // Get exactly 7 hours: 2 before current, current hour, and 4 after
@@ -114,7 +117,8 @@ export default function Weather() {
     .map((time, index) => ({
       hour: new Date(time).getHours(),
       temp: Math.round(weather.hourly.temperature_2m[startIndex + index]),
-      code: weather.hourly.weathercode[startIndex + index]
+      code: weather.hourly.weathercode[startIndex + index],
+      isNextDay: new Date(time).getDate() !== new Date().getDate()
     }));
 
   return (
@@ -130,10 +134,15 @@ export default function Weather() {
       {showHourly && (
         <div className="absolute top-full right-0 mt-2 p-2 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 w-[280px]">
           <div className="grid grid-cols-7 gap-0">
-            {relevantHours.map(({ hour, temp, code }) => (
+            {relevantHours.map(({ hour, temp, code, isNextDay }) => (
               <div key={hour} className="text-center">
                 <div className="text-[10px] text-gray-400">
-                  {hour === currentHour ? 'Now' : `${hour}:00`}
+                  {hour === currentHour && !isNextDay ? 'Now' : (
+                    <>
+                      {hour.toString().padStart(2, '0')}:00
+                      {isNextDay && <span className="text-[8px] text-gray-500">+1</span>}
+                    </>
+                  )}
                 </div>
                 <div className="text-sm my-0.5">
                   {getWeatherEmoji(code)}

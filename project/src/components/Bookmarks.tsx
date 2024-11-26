@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, X, Globe } from 'lucide-react';
+import { browserStorage } from '../utils/browserStorage';
 
 interface Bookmark {
   id: string;
   url: string;
 }
-
-const STORAGE_KEY = 'homepage_bookmarks';
 
 const defaultBookmarks: Bookmark[] = [
   { id: '1', url: 'https://github.com' },
@@ -19,24 +18,27 @@ const getFaviconUrl = (url: string): string => {
 };
 
 export default function Bookmarks() {
-  const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
+  const [bookmarks, setBookmarks] = useState<Bookmark[]>(defaultBookmarks);
   const [isAdding, setIsAdding] = useState(false);
   const [newBookmark, setNewBookmark] = useState({ url: '' });
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      setBookmarks(JSON.parse(stored));
-    } else {
-      setBookmarks(defaultBookmarks);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultBookmarks));
-    }
+    const loadBookmarks = async () => {
+      const stored = await browserStorage.get('bookmarks');
+      if (stored) {
+        try {
+          setBookmarks(JSON.parse(decodeURIComponent(stored)));
+        } catch (e) {
+          console.error('Error parsing bookmarks:', e);
+        }
+      }
+    };
+    loadBookmarks();
   }, []);
 
-  const saveBookmarks = (updatedBookmarks: Bookmark[]) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedBookmarks));
-    setBookmarks(updatedBookmarks);
-  };
+  useEffect(() => {
+    browserStorage.set('bookmarks', encodeURIComponent(JSON.stringify(bookmarks)));
+  }, [bookmarks]);
 
   const addBookmark = () => {
     if (newBookmark.url) {
@@ -46,7 +48,7 @@ export default function Bookmarks() {
         url
       }];
       
-      saveBookmarks(newBookmarks);
+      setBookmarks(newBookmarks);
       setNewBookmark({ url: '' });
       setIsAdding(false);
     }
@@ -54,7 +56,7 @@ export default function Bookmarks() {
 
   const removeBookmark = (id: string) => {
     const updatedBookmarks = bookmarks.filter(b => b.id !== id);
-    saveBookmarks(updatedBookmarks);
+    setBookmarks(updatedBookmarks);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -65,26 +67,26 @@ export default function Bookmarks() {
 
   return (
     <div className="w-full max-w-2xl">
-      <div className="grid grid-cols-10 gap-2 justify-items-center">
+      <div className="grid grid-cols-10 gap-3 justify-items-center">
         {bookmarks.map(bookmark => (
           <div key={bookmark.id} className="bookmark-item group relative">
             <a
               href={bookmark.url}
-              className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-white/5 transition-all"
+              className="flex items-center justify-center w-12 h-12 rounded-full hover:bg-white/5 transition-all"
               target="_blank"
               rel="noopener noreferrer"
             >
               <img 
                 src={getFaviconUrl(bookmark.url)}
                 alt=""
-                className="w-6 h-6"
+                className="w-7 h-7"
                 onError={(e) => {
                   e.currentTarget.onerror = null;
                   e.currentTarget.src = '';
                   e.currentTarget.className = 'hidden';
                   e.currentTarget.parentElement?.appendChild(
                     Object.assign(document.createElement('div'), {
-                      className: 'w-6 h-6 flex items-center justify-center',
+                      className: 'w-7 h-7 flex items-center justify-center',
                       children: [
                         Object.assign(document.createElement('div'), {
                           className: 'text-gray-300',
@@ -107,9 +109,9 @@ export default function Bookmarks() {
         
         <button
           onClick={() => setIsAdding(true)}
-          className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-white/5 transition-all"
+          className="flex items-center justify-center w-12 h-12 rounded-full hover:bg-white/5 transition-all"
         >
-          <Plus className="w-5 h-5 text-gray-400" />
+          <Plus className="w-6 h-6 text-gray-400" />
         </button>
       </div>
 
